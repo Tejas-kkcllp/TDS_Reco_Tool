@@ -559,7 +559,42 @@ def get_remaining_unmatched_entries_after_tolerance_three_words(individual_unmat
 
 def main():
     """Main function to handle the Streamlit app logic."""
-    st.sidebar.title("File Input")
+    st.title("TDS Reconciliation Tool")
+    st.sidebar.title("File Uploads")
+    
+    # About the Tool
+    st.markdown("""
+    ### About the Tool
+    **Reconciliation Purpose**  
+    This tool is designed to reconcile TDS data between your books of accounts (TDS Ledger) and Form 26AS.
+
+    **Objective**  
+    The goal is to minimize unmatched TDS entries as much as possible. The tool will provide reconciliation items that can be matched one-on-one with the TDS ledger.
+
+    **Current Functionality**  
+    At present, this tool summarizes TDS data on a totality basis.
+
+    **Output**  
+    The tool will generate the following columns in sequential order:
+
+    1. Deductor Number  
+    2. Name of Deductor  
+    3. TAN of Deductor  
+    4. Sr. No.  
+    5. Section  
+    6. Transaction Date  
+    7. Status of Booking  
+    8. Date of Booking  
+    9. Remarks  
+    10. Total Amount Paid / Credited (Rs.)  
+    11. Total Tax Deducted (Rs.)  
+    12. Total TDS Deposited (Rs.)
+
+    *Some columns may remain empty as the data is retrieved on a totality basis.*
+
+    Kindly note this tool is currently under development. Please review the results carefully before relying on them.
+    """)
+
     uploaded_file = st.sidebar.file_uploader("Upload a Text File (26AS TDS File)", type=["txt"])
     zoho_file = st.sidebar.file_uploader("Upload Zoho Books Excel File", type=["xlsx"])
 
@@ -704,6 +739,19 @@ def main():
                         # Display remaining unmatched individual entries after tolerance matching based on three words
                         display_dataframe_with_stats(remaining_unmatched_tds_after_tolerance_three_words, "Remaining Unmatched Individual Entries After Tolerance Based on Three Words in TDS", "TDS Deposited(Rs.)")
                         display_dataframe_with_stats(remaining_unmatched_zoho_after_tolerance_three_words, "Remaining Unmatched Individual Entries After Tolerance Based on Three Words in Zoho", "tds of the current fin. year")
+
+                        # Create Final DataFrame with All Matched Entries
+                        final_matched_df = pd.concat([
+                            exact_matching_df,
+                            tolerance_matching_df,
+                            individual_matched_df,
+                            individual_tolerance_matched_df,
+                            three_words_matched_df,
+                            three_words_tolerance_matched_df
+                        ]).reset_index(drop=True)
+
+                        # Display Final Consolidated DataFrame
+                        display_dataframe_with_stats(final_matched_df, "Final Consolidated Matched Entries", "TDS Deposited(Rs.)")
 
                 else:
                     st.warning('Please upload the Zoho Books Excel file to view Zoho data.')
