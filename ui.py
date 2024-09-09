@@ -555,11 +555,25 @@ def get_remaining_unmatched_entries_after_tolerance_three_words(individual_unmat
             remaining_unmatched_zoho = remaining_unmatched_zoho.drop(index=first_match_idx)
 
     return remaining_unmatched_tds, remaining_unmatched_zoho
-
+# Initialize session state variables
+if 'aggregated_tds_df' not in st.session_state:
+    st.session_state.aggregated_tds_df = None
+if 'df' not in st.session_state:
+    st.session_state.df = None
+if 'aggregated_zoho_df' not in st.session_state:
+    st.session_state.aggregated_zoho_df = None
+if 'selected_columns' not in st.session_state:
+    st.session_state.selected_columns = None
+if 'final_matched_df' not in st.session_state:
+    st.session_state.final_matched_df = None
+if 'remaining_unmatched_tds_after_tolerance_three_words' not in st.session_state:
+    st.session_state.remaining_unmatched_tds_after_tolerance_three_words = None
+if 'remaining_unmatched_zoho_after_tolerance_three_words' not in st.session_state:
+    st.session_state.remaining_unmatched_zoho_after_tolerance_three_words = None
 
 def main():
     """Main function to handle the Streamlit app logic."""
-    st.title("TDS Reconciliation Tool")
+    st.title("TDS Reconciliation Tool...")
     st.sidebar.title("File Uploads")
     
     # About the Tool
@@ -595,9 +609,27 @@ def main():
     Kindly note this tool is currently under development. Please review the results carefully before relying on them.
     """)
 
+    # Initialize session state variables
+    if 'df' not in st.session_state:
+        st.session_state.df = None
+    if 'aggregated_tds_df' not in st.session_state:
+        st.session_state.aggregated_tds_df = None
+    if 'aggregated_zoho_df' not in st.session_state:
+        st.session_state.aggregated_zoho_df = None
+    if 'selected_columns' not in st.session_state:
+        st.session_state.selected_columns = None
+    if 'final_matched_df' not in st.session_state:
+        st.session_state.final_matched_df = None
+    if 'remaining_unmatched_tds_after_tolerance_three_words' not in st.session_state:
+        st.session_state.remaining_unmatched_tds_after_tolerance_three_words = None
+    if 'remaining_unmatched_zoho_after_tolerance_three_words' not in st.session_state:
+        st.session_state.remaining_unmatched_zoho_after_tolerance_three_words = None
+
+    # File uploaders
     uploaded_file = st.sidebar.file_uploader("Upload a Text File (26AS TDS File)", type=["txt"])
     zoho_file = st.sidebar.file_uploader("Upload Zoho Books Excel File", type=["xlsx"])
 
+    # Button to start the process
     if st.sidebar.button("Submit"):
         if uploaded_file is not None:
             try:
@@ -606,6 +638,10 @@ def main():
                 display_dataframe_with_stats(df, "26AS Extracted Data", "TDS Deposited(Rs.)")
                 display_dataframe_with_stats(aggregated_tds_df, "Aggregated Totals by Deductor (26AS TDS)", "TDS Deposited(Rs.)")
 
+                # Save DataFrames to session state
+                st.session_state.df = df
+                st.session_state.aggregated_tds_df = aggregated_tds_df
+
                 # Process Zoho File if available
                 if zoho_file is not None:
                     aggregated_zoho_df, selected_columns = preprocess_zoho_file(zoho_file)
@@ -613,6 +649,10 @@ def main():
                     if aggregated_zoho_df is not None and selected_columns is not None:
                         display_dataframe_with_stats(selected_columns, "Zoho Extracted Data (Individual Records)", "tds of the current fin. year")
                         display_dataframe_with_stats(aggregated_zoho_df, "Aggregated Totals by Deductor (Zoho)", "tds of the current fin. year")
+
+                        # Save Zoho DataFrames to session state
+                        st.session_state.aggregated_zoho_df = aggregated_zoho_df
+                        st.session_state.selected_columns = selected_columns
 
                         # Exact Match Comparison
                         exact_matching_df = compare_dataframes(aggregated_tds_df, aggregated_zoho_df)
@@ -750,16 +790,34 @@ def main():
                             three_words_tolerance_matched_df
                         ]).reset_index(drop=True)
 
+                        # Save final matched DataFrame to session state
+                        st.session_state.final_matched_df = final_matched_df
+
                         # Display Final Consolidated DataFrame
                         display_dataframe_with_stats(final_matched_df, "Final Consolidated Matched Entries", "TDS Deposited(Rs.)")
-
-                else:
-                    st.warning('Please upload the Zoho Books Excel file to view Zoho data.')
 
             except Exception as e:
                 st.error(f"An error occurred while processing files: {str(e)}")
         else:
             st.sidebar.write("Awaiting file upload...")
 
+    # Place download buttons after file processing to prevent reloads
+    if st.session_state.df is not None:
+        st.sidebar.download_button("Download Individual 26AS", convert_df_to_excel(st.session_state.df), "Individual_26AS.xlsx")
+    if st.session_state.aggregated_tds_df is not None:
+        st.sidebar.download_button("Download Aggregated 26AS", convert_df_to_excel(st.session_state.aggregated_tds_df), "Aggregated_26AS.xlsx")
+    if st.session_state.aggregated_zoho_df is not None:
+        st.sidebar.download_button("Download Aggregated Zoho", convert_df_to_excel(st.session_state.aggregated_zoho_df), "Aggregated_Zoho.xlsx")
+    if st.session_state.selected_columns is not None:
+        st.sidebar.download_button("Download Individual Zoho", convert_df_to_excel(st.session_state.selected_columns), "Individual_Zoho.xlsx")
+    if st.session_state.final_matched_df is not None:
+        st.sidebar.download_button("Download Final Matching Data", convert_df_to_excel(st.session_state.final_matched_df), "Exact_Matches.xlsx")
+    if st.session_state.remaining_unmatched_tds_after_tolerance_three_words is not None:
+        st.sidebar.download_button("Download Final Unmatched TDS", convert_df_to_excel(st.session_state.remaining_unmatched_tds_after_tolerance_three_words), "Unmatched_TDS.xlsx")
+    if st.session_state.remaining_unmatched_zoho_after_tolerance_three_words is not None:
+        st.sidebar.download_button("Download Final Unmatched Zoho", convert_df_to_excel(st.session_state.remaining_unmatched_zoho_after_tolerance_three_words), "Unmatched_Zoho.xlsx")
+
 if __name__ == "__main__":
     main()
+
+
