@@ -555,7 +555,8 @@ def get_remaining_unmatched_entries_after_tolerance_three_words(individual_unmat
             remaining_unmatched_zoho = remaining_unmatched_zoho.drop(index=first_match_idx)
 
     return remaining_unmatched_tds, remaining_unmatched_zoho
-    
+
+
 def create_summary_table(final_matched_df, remaining_unmatched_tds, remaining_unmatched_zoho):
     summary_data = {
         "Category": ["Count of Entries", "Sum of Amount"],
