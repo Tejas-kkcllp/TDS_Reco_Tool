@@ -555,6 +555,7 @@ def get_remaining_unmatched_entries_after_tolerance_three_words(individual_unmat
             remaining_unmatched_zoho = remaining_unmatched_zoho.drop(index=first_match_idx)
 
     return remaining_unmatched_tds, remaining_unmatched_zoho
+    
 def create_summary_table(final_matched_df, remaining_unmatched_tds, remaining_unmatched_zoho):
     summary_data = {
         "Category": ["Count of Entries", "Sum of Amount"],
@@ -584,6 +585,8 @@ def display_summary_table(summary_df):
     # Create download button for summary table
     summary_excel = convert_df_to_excel(summary_df.reset_index())
     st.download_button("Download Summary Table", summary_excel, "Summary_Table.xlsx")
+
+
 # # Initialize session state variables
 # if 'aggregated_tds_df' not in st.session_state:
 #     st.session_state.aggregated_tds_df = None
@@ -872,6 +875,8 @@ def main():
         st.sidebar.download_button("(XXII). Download Final Unmatched Zoho", convert_df_to_excel(st.session_state.remaining_unmatched_zoho), "Unmatched_Zoho.xlsx")
     if st.session_state.final_matched_df_selected is not None:
         st.sidebar.download_button("(XXIII). Download Final Matching Data", convert_df_to_excel(st.session_state.final_matched_df_selected), "Exact_Matches.xlsx")
+
+
     # After displaying all DataFrames, add this code:
     if st.session_state.final_matched_df is not None and not st.session_state.remaining_unmatched_tds.empty and not st.session_state.remaining_unmatched_zoho.empty:
         summary_df = create_summary_table(
