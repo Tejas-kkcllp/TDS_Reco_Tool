@@ -935,16 +935,31 @@ def main():
                         # display_dataframe_with_stats(final_matched_df, "XXIII. Final Consolidated Matched Entries", "TDS Deposited(Rs.)")
                         # Initialize session state for 'final_matched_df_selected'
                         # Initialize session state for 'final_matched_df_selected'
+                        # Initialize session state for 'final_matched_df_selected'
                         if 'final_matched_df_selected' not in st.session_state:
                             st.session_state.final_matched_df_selected = pd.DataFrame()  # Initialize with an empty DataFrame
 
                         # Selecting only the required columns (index 0 and 4) if 'final_matched_df' is available
                         if st.session_state.final_matched_df is not None:
-                            # Selecting only the required columns (index 0 and 4)
-                            st.session_state.final_matched_df_selected = st.session_state.final_matched_df.iloc[:, [0, 4]]
+                            # Check if 'final_matched_df' is not empty to prevent errors when selecting columns
+                            if not st.session_state.final_matched_df.empty:
+                                # Selecting only the required columns (index 0 and 4)
+                                st.session_state.final_matched_df_selected = st.session_state.final_matched_df.iloc[:, [0, 4]]
 
-                            # Displaying the updated DataFrame with only the selected columns
-                            display_dataframe_with_stats(st.session_state.final_matched_df_selected, "XXIII. Final Consolidated Matched Entries (Selected Columns)", "TDS Deposited(Rs.)")
+                                # Displaying the updated DataFrame with only the selected columns
+                                display_dataframe_with_stats(st.session_state.final_matched_df_selected, "XXIII. Final Consolidated Matched Entries (Selected Columns)", "TDS Deposited(Rs.)")
+
+                                # Adding download button for the modified DataFrame
+                                st.sidebar.download_button(
+                                    "(XXIII). Download Final Matching Data (Selected Columns)",
+                                    convert_df_to_excel(st.session_state.final_matched_df_selected),
+                                    "Exact_Matches_Selected_Columns.xlsx"
+                                )
+
+                        # Else block to handle when 'final_matched_df' is None or empty
+                        else:
+                            st.write("No matched data available for display or download.")
+
 
                             # Adding download button for the modified DataFrame
                             st.sidebar.download_button(
