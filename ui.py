@@ -756,8 +756,6 @@ def main():
         st.session_state.remaining_unmatched_tds = pd.DataFrame()
     if 'remaining_unmatched_zoho' not in st.session_state:
         st.session_state.remaining_unmatched_zoho = pd.DataFrame()
-    if 'final_matched_df_selected' not in st.session_state:
-        st.session_state.final_matched_df_selected = pd.DataFrame()
 
     # File uploaders
     uploaded_file = st.sidebar.file_uploader("Upload a Text File (26AS TDS File)", type=["txt"])
@@ -933,22 +931,16 @@ def main():
                         st.session_state.remaining_unmatched_tds = remaining_unmatched_tds_after_tolerance_three_words
                         st.session_state.remaining_unmatched_zoho = remaining_unmatched_zoho_after_tolerance_three_words
 
-                        # Ensure 'final_matched_df_selected' is in session state and properly assigned
-                        if st.session_state.final_matched_df is not None and not st.session_state.final_matched_df.empty:
-                            # Selecting only the required columns (index 0 and 4)
-                            st.session_state.final_matched_df_selected = st.session_state.final_matched_df.iloc[:, [0, 4]]
+                        # # Display Final Consolidated DataFrame
+                        # display_dataframe_with_stats(final_matched_df, "XXIII. Final Consolidated Matched Entries", "TDS Deposited(Rs.)")
+                        # Initialize session state for 'final_matched_df_selected'
+                        if 'final_matched_df_selected' not in st.session_state:
+                            st.session_state.final_matched_df_selected = pd.DataFrame()  # Initialize with an empty DataFrame
+                        # Selecting only the required columns (index 0 and 4)
+                        final_matched_df_selected = st.session_state.final_matched_df.iloc[:, [0, 4]]
 
-                            # Displaying the updated DataFrame with only the selected columns
-                            display_dataframe_with_stats(st.session_state.final_matched_df_selected, "XXIII. Final Consolidated Matched Entries (Selected Columns)", "TDS Deposited(Rs.)")
-
-                            # Adding download button for the modified DataFrame
-                            st.sidebar.download_button(
-                                "(XXIII). Download Final Matching Data (Selected Columns)",
-                                convert_df_to_excel(st.session_state.final_matched_df_selected),
-                                "Exact_Matches_Selected_Columns.xlsx"
-                            )
-                        else:
-                            st.write("No matched data available for display or download.")
+                        # Displaying the updated DataFrame with only the selected columns
+                        display_dataframe_with_stats(final_matched_df_selected, "XXIII. Final Consolidated Matched Entries (Selected Columns)", "TDS Deposited(Rs.)")
 
             except Exception as e:
                 st.error(f"An error occurred while processing files: {str(e)}")
@@ -968,8 +960,9 @@ def main():
         st.sidebar.download_button("(XXI). Download Final Unmatched TDS", convert_df_to_excel(st.session_state.remaining_unmatched_tds), "Unmatched_TDS.xlsx")
     if not st.session_state.remaining_unmatched_zoho.empty:
         st.sidebar.download_button("(XXII). Download Final Unmatched Zoho", convert_df_to_excel(st.session_state.remaining_unmatched_zoho), "Unmatched_Zoho.xlsx")
-    if not st.session_state.final_matched_df_selected.empty:
-        st.sidebar.download_button("(XXIII). Download Final Matching Data (Selected Columns)", convert_df_to_excel(st.session_state.final_matched_df_selected), "Exact_Matches_Selected_Columns.xlsx")
+    if st.session_state.final_matched_df_selected is not None:
+        st.sidebar.download_button("(XXIII). Download Final Matching Data", convert_df_to_excel(st.session_state.final_matched_df_selected), "Exact_Matches.xlsx")
+
 
     # After displaying all DataFrames, add this code:
     # In the main() function, replace the existing summary table creation with:
