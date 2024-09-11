@@ -934,13 +934,18 @@ def main():
                         # # Display Final Consolidated DataFrame
                         # display_dataframe_with_stats(final_matched_df, "XXIII. Final Consolidated Matched Entries", "TDS Deposited(Rs.)")
                         # Initialize session state for 'final_matched_df_selected'
+                        # Initialize session state for 'final_matched_df_selected'
                         if 'final_matched_df_selected' not in st.session_state:
                             st.session_state.final_matched_df_selected = pd.DataFrame()  # Initialize with an empty DataFrame
-                        # Selecting only the required columns (index 0 and 4)
-                        final_matched_df_selected = st.session_state.final_matched_df.iloc[:, [0, 4]]
 
-                        # Displaying the updated DataFrame with only the selected columns
-                        display_dataframe_with_stats(final_matched_df_selected, "XXIII. Final Consolidated Matched Entries (Selected Columns)", "TDS Deposited(Rs.)")
+                        # Selecting only the required columns (index 0 and 4)
+                        if st.session_state.final_matched_df is not None:
+                            final_matched_df_selected = st.session_state.final_matched_df.iloc[:, [0, 4]]
+                            st.session_state.final_matched_df_selected = final_matched_df_selected
+
+                            # Displaying the updated DataFrame with only the selected columns
+                            display_dataframe_with_stats(final_matched_df_selected, "XXIII. Final Consolidated Matched Entries (Selected Columns)", "TDS Deposited(Rs.)")
+
 
             except Exception as e:
                 st.error(f"An error occurred while processing files: {str(e)}")
