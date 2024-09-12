@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO, StringIO
-import locale
 
 # Function to add a serial number column to DataFrame
 def add_serial_number_column(df):
@@ -559,16 +558,27 @@ def get_remaining_unmatched_entries_after_tolerance_three_words(individual_unmat
 
 
 def format_indian_currency(amount):
-    # Set the locale to en_IN for Indian number formatting
-    locale.setlocale(locale.LC_NUMERIC, 'en_IN')
+    """
+    Formats a number as Indian currency without using locale settings.
+    """
+    # Convert the number to a string with two decimal places
+    formatted_amount = "{:,.2f}".format(amount)
     
-    # Format the number with commas and two decimal places
-    formatted_amount = locale.format_string('%.2f', amount, grouping=True)
-    
-    # Reset the locale to the default
-    locale.setlocale(locale.LC_NUMERIC, '')
+    # Split the formatted amount into integer and decimal parts
+    parts = formatted_amount.split(".")
+    integer_part = parts[0]
+    decimal_part = parts[1]
+
+    # Insert commas according to the Indian number system
+    if len(integer_part) > 3:
+        integer_part = integer_part[:-3] + ',' + integer_part[-3:]
+        integer_part = ','.join([integer_part[0:max(0, len(integer_part)-6)], integer_part[max(0, len(integer_part)-6):]])
+
+    # Reassemble the formatted amount
+    formatted_amount = integer_part + "." + decimal_part
     
     return f"₹{formatted_amount}"
+
 
 def create_summary_tables(final_matched_df, remaining_unmatched_tds, remaining_unmatched_zoho, selected_columns, df):
     # Calculate total amounts
@@ -954,6 +964,8 @@ def main():
                                 st.session_state.selected_columns,
                                 st.session_state.df
                             )
+
+                        # Ensure these variables are checked before calling display_summary_tables
                         if count_summary_df is not None and amount_summary_df is not None:
                             display_summary_tables(count_summary_df, amount_summary_df)
 
