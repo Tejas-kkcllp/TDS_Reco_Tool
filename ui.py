@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO, StringIO
+import locale
 
 # Function to add a serial number column to DataFrame
 def add_serial_number_column(df):
@@ -555,35 +556,124 @@ def get_remaining_unmatched_entries_after_tolerance_three_words(individual_unmat
             remaining_unmatched_zoho = remaining_unmatched_zoho.drop(index=first_match_idx)
 
     return remaining_unmatched_tds, remaining_unmatched_zoho
-def create_summary_table(final_matched_df, remaining_unmatched_tds, remaining_unmatched_zoho):
-    summary_data = {
-        "Category": ["Count of Entries", "Sum of Amount"],
-        "Matched Data": [
-            len(final_matched_df),
-            final_matched_df["TDS Deposited(Rs.)"].sum()
+
+
+def format_indian_currency(amount):
+    # Set the locale to en_IN for Indian number formatting
+    locale.setlocale(locale.LC_NUMERIC, 'en_IN')
+    
+    # Format the number with commas and two decimal places
+    formatted_amount = locale.format_string('%.2f', amount, grouping=True)
+    
+    # Reset the locale to the default
+    locale.setlocale(locale.LC_NUMERIC, '')
+    
+    return f"₹{formatted_amount}"
+
+def create_summary_tables(final_matched_df, remaining_unmatched_tds, remaining_unmatched_zoho, selected_columns, df):
+    # Calculate total amounts
+    total_zoho = selected_columns["tds of the current fin. year"].sum()
+    total_26as = df["TDS Deposited(Rs.)"].sum()
+    
+    # Calculate amounts for each category
+    matched_amount = final_matched_df["TDS Deposited(Rs.)"].sum()
+    unmatched_26as_amount = remaining_unmatched_tds["TDS Deposited(Rs.)"].sum()
+    unmatched_zoho_amount = remaining_unmatched_zoho["tds of the current fin. year"].sum()
+    
+    # Calculate counts
+    total_count_26as = len(df)
+    total_count_zoho = len(selected_columns)
+    matched_count = len(final_matched_df)
+    unmatched_26as_count = len(remaining_unmatched_tds)
+    unmatched_zoho_count = len(remaining_unmatched_zoho)
+    
+    # Calculate percentages for amounts
+    matched_percent_zoho = (matched_amount / total_zoho) * 100 if total_zoho != 0 else 0
+    matched_percent_26as = (matched_amount / total_26as) * 100 if total_26as != 0 else 0
+    unmatched_26as_percent = (unmatched_26as_amount / total_26as) * 100 if total_26as != 0 else 0
+    unmatched_zoho_percent = (unmatched_zoho_amount / total_zoho) * 100 if total_zoho != 0 else 0
+
+    # Calculate percentages for counts
+    matched_count_percent_26as = (matched_count / total_count_26as) * 100 if total_count_26as != 0 else 0
+    matched_count_percent_zoho = (matched_count / total_count_zoho) * 100 if total_count_zoho != 0 else 0
+    unmatched_26as_count_percent = (unmatched_26as_count / total_count_26as) * 100 if total_count_26as != 0 else 0
+    unmatched_zoho_count_percent = (unmatched_zoho_count / total_count_zoho) * 100 if total_count_zoho != 0 else 0
+
+    # Create count summary table
+    count_summary_data = {
+        "Category": ["Original Count", "Matched Count", "Unmatched Count"],
+        "26AS": [
+            total_count_26as,
+            matched_count,
+            unmatched_26as_count
         ],
-        "Unmatched Data 26AS": [
-            len(remaining_unmatched_tds),
-            remaining_unmatched_tds["TDS Deposited(Rs.)"].sum()
+        "26AS %": [
+            "100%",
+            f"{matched_count_percent_26as:.2f}%",
+            f"{unmatched_26as_count_percent:.2f}%"
         ],
-        "Unmatched Data Zoho": [
-            len(remaining_unmatched_zoho),
-            remaining_unmatched_zoho["tds of the current fin. year"].sum()
+        "Zoho": [
+            total_count_zoho,
+            matched_count,
+            unmatched_zoho_count
+        ],
+        "Zoho %": [
+            "100%",
+            f"{matched_count_percent_zoho:.2f}%",
+            f"{unmatched_zoho_count_percent:.2f}%"
         ]
     }
     
-    summary_df = pd.DataFrame(summary_data)
-    summary_df = summary_df.set_index("Category")
+    count_summary_df = pd.DataFrame(count_summary_data)
+    count_summary_df = count_summary_df.set_index("Category")
     
-    return summary_df
+    # Create amount summary table
+    amount_summary_data = {
+        "Category": ["Original Amount", "Matched Amount", "Unmatched Amount"],
+        "26AS": [
+            format_indian_currency(total_26as),
+            format_indian_currency(matched_amount),
+            format_indian_currency(unmatched_26as_amount)
+        ],
+        "26AS %": [
+            "100%",
+            f"{matched_percent_26as:.2f}%",
+            f"{unmatched_26as_percent:.2f}%"
+        ],
+        "Zoho": [
+            format_indian_currency(total_zoho),
+            format_indian_currency(matched_amount),
+            format_indian_currency(unmatched_zoho_amount)
+        ],
+        "Zoho %": [
+            "100%",
+            f"{matched_percent_zoho:.2f}%",
+            f"{unmatched_zoho_percent:.2f}%"
+        ]
+    }
+    
+    amount_summary_df = pd.DataFrame(amount_summary_data)
+    amount_summary_df = amount_summary_df.set_index("Category")
+    
+    return count_summary_df, amount_summary_df
 
-def display_summary_table(summary_df):
-    st.header("Summary Table")
-    st.table(summary_df)
+def display_summary_tables(count_summary_df, amount_summary_df):
+    st.header("Summary Tables")
     
-    # Create download button for summary table
-    summary_excel = convert_df_to_excel(summary_df.reset_index())
-    st.download_button("Download Summary Table", summary_excel, "Summary_Table.xlsx")
+    st.subheader("Count of Entries")
+    st.table(count_summary_df)
+    
+    st.subheader("Amount of Entries")
+    st.table(amount_summary_df)
+    
+    # Create download buttons for summary tables
+    count_summary_excel = convert_df_to_excel(count_summary_df.reset_index())
+    st.download_button("Download Count Summary Table", count_summary_excel, "Count_Summary_Table.xlsx")
+    
+    amount_summary_excel = convert_df_to_excel(amount_summary_df.reset_index())
+    st.download_button("Download Amount Summary Table", amount_summary_excel, "Amount_Summary_Table.xlsx")
+
+
 # # Initialize session state variables
 # if 'aggregated_tds_df' not in st.session_state:
 #     st.session_state.aggregated_tds_df = None
@@ -602,7 +692,7 @@ def display_summary_table(summary_df):
 # Initialize session state variables
 default_dataframes = ['remaining_unmatched_tds', 'remaining_unmatched_zoho']
 
-for var in ['df', 'aggregated_tds_df', 'aggregated_zoho_df', 'selected_columns', 'final_matched_df']:
+for var in ['df', 'aggregated_tds_df', 'aggregated_zoho_df', 'selected_columns', 'final_matched_df', 'final_matched_df_selected']:
     if var not in st.session_state:
         st.session_state[var] = None
 
@@ -617,7 +707,7 @@ def main():
     """Main function to handle the Streamlit app logic."""
     st.title("TDS Reconciliation Tool")
     st.sidebar.title("File Uploads")
-    
+
     # About the Tool
     st.markdown("""
     ### About the Tool
@@ -666,6 +756,11 @@ def main():
         st.session_state.remaining_unmatched_tds = pd.DataFrame()
     if 'remaining_unmatched_zoho' not in st.session_state:
         st.session_state.remaining_unmatched_zoho = pd.DataFrame()
+    if 'final_matched_df_selected' not in st.session_state:
+        st.session_state.final_matched_df_selected = pd.DataFrame()  # Initialize with empty DataFrame
+
+    # Initialize summary DataFrames to None
+    count_summary_df, amount_summary_df = None, None
 
     # File uploaders
     uploaded_file = st.sidebar.file_uploader("Upload a Text File (26AS TDS File)", type=["txt"])
@@ -696,15 +791,15 @@ def main():
                         st.session_state.aggregated_zoho_df = aggregated_zoho_df
                         st.session_state.selected_columns = selected_columns
 
-                        # Exact Match Comparison
+                        # Perform exact match comparison
                         exact_matching_df = compare_dataframes(aggregated_tds_df, aggregated_zoho_df)
                         display_dataframe_with_stats(exact_matching_df, "V. Aggregate Matching of TDS and Zoho", "TDS Deposited(Rs.)")
 
-                        # Tolerance Match Comparison
+                        # Perform tolerance match comparison
                         tolerance_matching_df = compare_with_tolerance(aggregated_tds_df, aggregated_zoho_df, exact_matching_df, tolerance=10)
                         display_dataframe_with_stats(tolerance_matching_df, "VI. Tolerance Matching of TDS and Zoho (Within ±10)", "TDS Deposited(Rs.)")
 
-                        # Unmatched Entries
+                        # Get unmatched entries
                         unmatched_tds, unmatched_zoho = get_unmatched_entries(aggregated_tds_df, aggregated_zoho_df, exact_matching_df, tolerance_matching_df)
                         display_dataframe_with_stats(unmatched_tds, "VII. Unmatched Entries in TDS", "TDS Deposited(Rs.)")
                         display_dataframe_with_stats(unmatched_zoho, "VIII. Unmatched Entries in Zoho", "tds of the current fin. year")
@@ -718,23 +813,23 @@ def main():
 
                         # Perform matching on individual unmatched entries
                         individual_matched_df = match_individual_entries(
-                            individual_unmatched_tds, 
-                            individual_unmatched_zoho, 
-                            'Name of Deductor', 
-                            'name of the deductor', 
-                            'TDS Deposited(Rs.)', 
+                            individual_unmatched_tds,
+                            individual_unmatched_zoho,
+                            'Name of Deductor',
+                            'name of the deductor',
+                            'TDS Deposited(Rs.)',
                             'tds of the current fin. year'
                         )
                         display_dataframe_with_stats(individual_matched_df, "XI. Matched Individual Unmatched Entries in TDS and Zoho", "TDS Deposited(Rs.)")
 
                         # Get remaining unmatched individual entries after removing matched ones
                         remaining_unmatched_tds, remaining_unmatched_zoho = get_remaining_unmatched_entries(
-                            individual_unmatched_tds, 
-                            individual_unmatched_zoho, 
-                            individual_matched_df, 
-                            'Name of Deductor', 
-                            'name of the deductor', 
-                            'TDS Deposited(Rs.)', 
+                            individual_unmatched_tds,
+                            individual_unmatched_zoho,
+                            individual_matched_df,
+                            'Name of Deductor',
+                            'name of the deductor',
+                            'TDS Deposited(Rs.)',
                             'tds of the current fin. year'
                         )
 
@@ -744,11 +839,11 @@ def main():
 
                         # Perform tolerance matching on individual unmatched entries
                         individual_tolerance_matched_df = match_individual_entries_with_tolerance(
-                            remaining_unmatched_tds, 
-                            remaining_unmatched_zoho, 
-                            'Name of Deductor', 
-                            'name of the deductor', 
-                            'TDS Deposited(Rs.)', 
+                            remaining_unmatched_tds,
+                            remaining_unmatched_zoho,
+                            'Name of Deductor',
+                            'name of the deductor',
+                            'TDS Deposited(Rs.)',
                             'tds of the current fin. year',
                             tolerance=10
                         )
@@ -756,12 +851,12 @@ def main():
 
                         # Get remaining unmatched individual entries after removing tolerance matched ones
                         remaining_unmatched_tds_after_tolerance, remaining_unmatched_zoho_after_tolerance = get_remaining_unmatched_entries_with_tolerance(
-                            remaining_unmatched_tds, 
-                            remaining_unmatched_zoho, 
-                            individual_tolerance_matched_df, 
-                            'Name of Deductor', 
-                            'name of the deductor', 
-                            'TDS Deposited(Rs.)', 
+                            remaining_unmatched_tds,
+                            remaining_unmatched_zoho,
+                            individual_tolerance_matched_df,
+                            'Name of Deductor',
+                            'name of the deductor',
+                            'TDS Deposited(Rs.)',
                             'tds of the current fin. year'
                         )
 
@@ -769,25 +864,25 @@ def main():
                         display_dataframe_with_stats(remaining_unmatched_tds_after_tolerance, "XV. Remaining Unmatched Individual Entries After Tolerance in TDS", "TDS Deposited(Rs.)")
                         display_dataframe_with_stats(remaining_unmatched_zoho_after_tolerance, "XVI. Remaining Unmatched Individual Entries After Tolerance in Zoho", "tds of the current fin. year")
 
-                        # Fourth round of matching based on the first three words in the deductor name
+                        # Perform matching based on the first three words in the deductor name
                         three_words_matched_df = match_individual_entries_based_on_three_words(
-                            remaining_unmatched_tds_after_tolerance, 
-                            remaining_unmatched_zoho_after_tolerance, 
-                            'Name of Deductor', 
-                            'name of the deductor', 
-                            'TDS Deposited(Rs.)', 
+                            remaining_unmatched_tds_after_tolerance,
+                            remaining_unmatched_zoho_after_tolerance,
+                            'Name of Deductor',
+                            'name of the deductor',
+                            'TDS Deposited(Rs.)',
                             'tds of the current fin. year'
                         )
                         display_dataframe_with_stats(three_words_matched_df, "XVII. Matched Individual Unmatched Entries Based on Three Words in Deductor Name", "TDS Deposited(Rs.)")
 
                         # Get remaining unmatched individual entries after removing matches based on three words in the deductor name
                         remaining_unmatched_tds_after_three_words, remaining_unmatched_zoho_after_three_words = get_remaining_unmatched_entries_after_three_words(
-                            remaining_unmatched_tds_after_tolerance, 
-                            remaining_unmatched_zoho_after_tolerance, 
-                            three_words_matched_df, 
-                            'Name of Deductor', 
-                            'name of the deductor', 
-                            'TDS Deposited(Rs.)', 
+                            remaining_unmatched_tds_after_tolerance,
+                            remaining_unmatched_zoho_after_tolerance,
+                            three_words_matched_df,
+                            'Name of Deductor',
+                            'name of the deductor',
+                            'TDS Deposited(Rs.)',
                             'tds of the current fin. year'
                         )
 
@@ -797,11 +892,11 @@ def main():
 
                         # Perform tolerance matching on individual unmatched entries based on three words in the deductor name
                         three_words_tolerance_matched_df = match_individual_entries_with_tolerance_based_on_three_words(
-                            remaining_unmatched_tds_after_three_words, 
-                            remaining_unmatched_zoho_after_three_words, 
-                            'Name of Deductor', 
-                            'name of the deductor', 
-                            'TDS Deposited(Rs.)', 
+                            remaining_unmatched_tds_after_three_words,
+                            remaining_unmatched_zoho_after_three_words,
+                            'Name of Deductor',
+                            'name of the deductor',
+                            'TDS Deposited(Rs.)',
                             'tds of the current fin. year',
                             tolerance=10
                         )
@@ -811,12 +906,12 @@ def main():
 
                         # Get remaining unmatched individual entries after removing tolerance matched ones based on three words
                         remaining_unmatched_tds_after_tolerance_three_words, remaining_unmatched_zoho_after_tolerance_three_words = get_remaining_unmatched_entries_after_tolerance_three_words(
-                            remaining_unmatched_tds_after_three_words, 
-                            remaining_unmatched_zoho_after_three_words, 
-                            three_words_tolerance_matched_df, 
-                            'Name of Deductor', 
-                            'name of the deductor', 
-                            'TDS Deposited(Rs.)', 
+                            remaining_unmatched_tds_after_three_words,
+                            remaining_unmatched_zoho_after_three_words,
+                            three_words_tolerance_matched_df,
+                            'Name of Deductor',
+                            'name of the deductor',
+                            'TDS Deposited(Rs.)',
                             'tds of the current fin. year'
                         )
 
@@ -841,16 +936,26 @@ def main():
                         st.session_state.remaining_unmatched_tds = remaining_unmatched_tds_after_tolerance_three_words
                         st.session_state.remaining_unmatched_zoho = remaining_unmatched_zoho_after_tolerance_three_words
 
-                        # # Display Final Consolidated DataFrame
-                        # display_dataframe_with_stats(final_matched_df, "XXIII. Final Consolidated Matched Entries", "TDS Deposited(Rs.)")
-                        # Initialize session state for 'final_matched_df_selected'
-                        if 'final_matched_df_selected' not in st.session_state:
-                            st.session_state.final_matched_df_selected = pd.DataFrame()  # Initialize with an empty DataFrame
                         # Selecting only the required columns (index 0 and 4)
                         final_matched_df_selected = st.session_state.final_matched_df.iloc[:, [0, 4]]
 
                         # Displaying the updated DataFrame with only the selected columns
                         display_dataframe_with_stats(final_matched_df_selected, "XXIII. Final Consolidated Matched Entries (Selected Columns)", "TDS Deposited(Rs.)")
+
+                        # Initialize session state for 'final_matched_df_selected'
+                        st.session_state.final_matched_df_selected = final_matched_df_selected
+
+                        # Ensure summary tables are created only when all required data is available
+                        if st.session_state.final_matched_df is not None and not st.session_state.remaining_unmatched_tds.empty and not st.session_state.remaining_unmatched_zoho.empty:
+                            count_summary_df, amount_summary_df = create_summary_tables(
+                                st.session_state.final_matched_df,
+                                st.session_state.remaining_unmatched_tds,
+                                st.session_state.remaining_unmatched_zoho,
+                                st.session_state.selected_columns,
+                                st.session_state.df
+                            )
+                        if count_summary_df is not None and amount_summary_df is not None:
+                            display_summary_tables(count_summary_df, amount_summary_df)
 
             except Exception as e:
                 st.error(f"An error occurred while processing files: {str(e)}")
@@ -872,16 +977,9 @@ def main():
         st.sidebar.download_button("(XXII). Download Final Unmatched Zoho", convert_df_to_excel(st.session_state.remaining_unmatched_zoho), "Unmatched_Zoho.xlsx")
     if st.session_state.final_matched_df_selected is not None:
         st.sidebar.download_button("(XXIII). Download Final Matching Data", convert_df_to_excel(st.session_state.final_matched_df_selected), "Exact_Matches.xlsx")
-    # After displaying all DataFrames, add this code:
-    if st.session_state.final_matched_df is not None and not st.session_state.remaining_unmatched_tds.empty and not st.session_state.remaining_unmatched_zoho.empty:
-        summary_df = create_summary_table(
-            st.session_state.final_matched_df,
-            st.session_state.remaining_unmatched_tds,
-            st.session_state.remaining_unmatched_zoho
-        )
-        display_summary_table(summary_df)
 
 if __name__ == "__main__":
     main()
+
 
     
