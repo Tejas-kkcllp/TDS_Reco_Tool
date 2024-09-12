@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO, StringIO
+import re
 
 # Function to add a serial number column to DataFrame
 def add_serial_number_column(df):
@@ -557,27 +558,45 @@ def get_remaining_unmatched_entries_after_tolerance_three_words(individual_unmat
     return remaining_unmatched_tds, remaining_unmatched_zoho
 
 
+
 def format_indian_currency(amount):
     """
-    Formats a number as Indian currency without using locale settings.
+    Formats a number or string as Indian currency without using locale settings.
+    Handles inputs that may already be partially formatted.
     """
+    # If input is a string, remove existing commas and currency symbol
+    if isinstance(amount, str):
+        amount = amount.replace(',', '').replace('₹', '').strip()
+    
     # Convert the number to a string with two decimal places
-    formatted_amount = "{:,.2f}".format(amount)
+    formatted_amount = "{:.2f}".format(float(amount))
     
     # Split the formatted amount into integer and decimal parts
     parts = formatted_amount.split(".")
     integer_part = parts[0]
     decimal_part = parts[1]
-
-    # Insert commas according to the Indian number system
+    
+    # Format the integer part for Indian currency style
     if len(integer_part) > 3:
-        integer_part = integer_part[:-3] + ',' + integer_part[-3:]
-        integer_part = ','.join([integer_part[0:max(0, len(integer_part)-6)], integer_part[max(0, len(integer_part)-6):]])
-
+        # Get the last three digits for the hundreds place
+        last_three = integer_part[-3:]
+        # Format the remaining part with commas after every two digits from right to left
+        remaining_digits = integer_part[:-3]
+        formatted_remaining = ""
+        for i, digit in enumerate(remaining_digits[::-1]):
+            if i > 0 and i % 2 == 0:
+                formatted_remaining = ',' + formatted_remaining
+            formatted_remaining = digit + formatted_remaining
+        # Combine the two parts with a comma
+        integer_part = formatted_remaining + ',' + last_three if formatted_remaining else last_three
+    
     # Reassemble the formatted amount
     formatted_amount = integer_part + "." + decimal_part
     
     return f"₹{formatted_amount}"
+
+
+
 
 
 def create_summary_tables(final_matched_df, remaining_unmatched_tds, remaining_unmatched_zoho, selected_columns, df):
