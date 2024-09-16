@@ -25,13 +25,20 @@ def display_dataframe_with_stats(df, name, sum_column):
     st.write(f"**{name} - Total Rows:** {row_count}")
     st.write(f"**{name} - Sum of {sum_column}:** {total_sum:.2f}")
 
+
+#Adds an empty line after every occurrence of the target line in the input content
 def add_empty_line(input_content, target_line):
     output = StringIO()
+    # Split the input content into lines based on newline characters
     for line in input_content.split('\n'):
         output.write(line + '\n')
+        # If the current line matches the target line (ignoring leading/trailing spaces)
         if line.strip() == target_line.strip():
             output.write('\n')
     return output.getvalue()
+
+
+#Adds a single line break after the line containing 'Sr. No.' in the section of the content that follows the header '^PART-I - Details of Tax Deducted at Source^'.
 
 def add_line_breaker_to_content(content):
     sections = content.split('^PART-I - Details of Tax Deducted at Source^')
@@ -53,6 +60,8 @@ def add_line_breaker_to_content(content):
             header_found = True
         else:
             modified_lines.append(line)
+
+    # Reassemble the content by joining the header section with the modified data section
 
     modified_content = header_section + '^PART-I - Details of Tax Deducted at Source^' + '\n'.join(modified_lines)
     return modified_content
@@ -136,7 +145,7 @@ def preprocess_zoho_file(file):
         selected_columns['name of the deductor'] = selected_columns['name of the deductor'].str.upper()
         selected_columns['tds of the current fin. year'] = pd.to_numeric(selected_columns['tds of the current fin. year'], errors='coerce')
         
-        selected_columns = selected_columns.iloc[:-1]
+        selected_columns = selected_columns.iloc[:-2]
         aggregated_df = selected_columns.groupby('name of the deductor', as_index=False)['tds of the current fin. year'].sum()
         
         return aggregated_df, selected_columns
@@ -206,6 +215,7 @@ def get_unmatched_entries(aggregated_tds_df, aggregated_zoho_df, exact_matching_
     return unmatched_tds, unmatched_zoho
 
 def get_individual_unmatched_entries(df, unmatched_df, key_col, sum_col):
+    # """Gets individual entries for unmatched deductors."""
     """Gets individual entries for unmatched deductors."""
     unmatched_deductors = unmatched_df[key_col].unique()
     individual_unmatched_df = df[df[key_col].isin(unmatched_deductors)]
@@ -213,6 +223,7 @@ def get_individual_unmatched_entries(df, unmatched_df, key_col, sum_col):
 
 @st.cache_data
 def convert_df_to_excel(df):
+    # """Converts DataFrame to Excel format for download."""
     """Converts DataFrame to Excel format for download."""
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -747,7 +758,14 @@ def main():
     The goal is to minimize unmatched TDS entries as much as possible. The tool will provide reconciliation items that can be matched one-on-one with the TDS ledger.
 
     **Current Functionality**  
-    At present, this tool summarizes TDS data on a totality basis.
+    At present, we are matching data based on three types:
+    1. **Totality Basis** - Summarizes TDS data on a totality basis.   
+    2. **Individual Basis** - Matches data on an individual record basis.   
+    3. **First Three Words of Deductor** - Matches based on the first three words of the deductor's name. 
+                
+    Additionally, the tool matches entries in two patterns:
+    1. **Exact Matches** - Matches where the entries are exactly the same.    
+    2. **Matches by Tolerance** - Matches where there is a tolerance of ±10%. 
 
     **Output**  
     The tool will generate the following columns in sequential order:
