@@ -769,7 +769,7 @@ def main():
     1. **Exact Matches** - Matches where the entries are exactly the same.    
     2. **Matches by Tolerance** - Matches where there is a tolerance of ±10%. 
 
-    # Developed By Tejas Gavale
+    
     **Output**  
     The tool will generate the following columns in sequential order:
 
