@@ -3,6 +3,7 @@ import pandas as pd
 from io import BytesIO, StringIO
 import re
 
+# Developed By Tejas Gavale
 # Function to add a serial number column to DataFrame
 def add_serial_number_column(df):
     # Remove duplicates of 'sr. no.' if present
@@ -39,7 +40,7 @@ def add_empty_line(input_content, target_line):
 
 
 #Adds a single line break after the line containing 'Sr. No.' in the section of the content that follows the header '^PART-I - Details of Tax Deducted at Source^'.
-
+# Developed By Tejas Gavale
 def add_line_breaker_to_content(content):
     sections = content.split('^PART-I - Details of Tax Deducted at Source^')
     
@@ -320,6 +321,7 @@ def get_remaining_unmatched_entries(individual_unmatched_tds, individual_unmatch
     # Create copies of the unmatched DataFrames to avoid modifying the originals
     remaining_unmatched_tds = individual_unmatched_tds.copy()
     remaining_unmatched_zoho = individual_unmatched_zoho.copy()
+    # Developed By Tejas Gavale
 
     # Convert matched_df to a list of dictionaries for efficient row-wise processing
     matched_rows = matched_df.to_dict('records')
@@ -349,7 +351,7 @@ def get_remaining_unmatched_entries(individual_unmatched_tds, individual_unmatch
             remaining_unmatched_zoho = remaining_unmatched_zoho.drop(index=first_match_idx)
 
     return remaining_unmatched_tds, remaining_unmatched_zoho
-
+# Developed By Tejas Gavale
 def get_remaining_unmatched_entries_with_tolerance(individual_unmatched_tds, individual_unmatched_zoho, matched_df, key_col_tds, key_col_zoho, sum_col_tds, sum_col_zoho):
     """Finds the remaining unmatched individual entries after removing only the matched ones within the tolerance range."""
 
@@ -531,7 +533,7 @@ def match_individual_entries_with_tolerance_based_on_three_words(unmatched_tds, 
     unmatched_zoho.drop(columns=['Three Words Deductor (Zoho)'], inplace=True)
     
     return matched_df
-
+# Developed By Tejas Gavale
 def get_remaining_unmatched_entries_after_tolerance_three_words(individual_unmatched_tds, individual_unmatched_zoho, matched_df, key_col_tds, key_col_zoho, sum_col_tds, sum_col_zoho):
     """Finds the remaining unmatched individual entries after removing the matched ones based on tolerance of the first three words in the deductor name."""
 
@@ -666,7 +668,7 @@ def create_summary_tables(final_matched_df, remaining_unmatched_tds, remaining_u
     
     count_summary_df = pd.DataFrame(count_summary_data)
     count_summary_df = count_summary_df.set_index("Category")
-    
+    # Developed By Tejas Gavale
     # Create amount summary table
     amount_summary_data = {
         "Category": ["Original Amount", "Matched Amount", "Unmatched Amount"],
@@ -742,7 +744,7 @@ for df_var in default_dataframes:
 
 
 
-
+# Developed By Tejas Gavale
 def main():
     """Main function to handle the Streamlit app logic."""
     st.title("TDS Reconciliation Tool")
@@ -767,6 +769,7 @@ def main():
     1. **Exact Matches** - Matches where the entries are exactly the same.    
     2. **Matches by Tolerance** - Matches where there is a tolerance of ±10%. 
 
+    # Developed By Tejas Gavale
     **Output**  
     The tool will generate the following columns in sequential order:
 
@@ -920,6 +923,7 @@ def main():
                             'TDS Deposited(Rs.)',
                             'tds of the current fin. year'
                         )
+                        # Developed By Tejas Gavale
                         display_dataframe_with_stats(three_words_matched_df, "XVII. Matched Individual Unmatched Entries Based on Three Words in Deductor Name", "TDS Deposited(Rs.)")
 
                         # Get remaining unmatched individual entries after removing matches based on three words in the deductor name
@@ -975,7 +979,7 @@ def main():
                             three_words_matched_df,
                             three_words_tolerance_matched_df
                         ]).reset_index(drop=True)
-
+                        # Developed By Tejas Gavale
                         # Save final matched DataFrame to session state
                         st.session_state.final_matched_df = final_matched_df
 
@@ -1029,6 +1033,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Developed By Tejas Gavale
 
 
     
